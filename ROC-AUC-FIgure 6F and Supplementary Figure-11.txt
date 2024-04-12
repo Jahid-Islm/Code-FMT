@@ -1,0 +1,100 @@
+#Receiver Operating Characteristic(ROC) Curves (Binary Classification)
+
+Import libraries for the analysis
+import pandas as pd        
+import numpy as np         
+import matplotlib.pyplot as plt
+from sklearn.svm import SVC
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import roc_curve,auc
+from sklearn.model_selection import train_test_split
+
+#Read the data
+#set path to the data file.
+data_file='F-FMT.csv'
+#read the data with pandas
+dataframe=pd.read_csv(data_file)
+
+#Explore, clean and preprocess the data
+#find the number of rows and columns in the dataframe
+dataframe.shape
+#check data columns
+dataframe.columns
+#check the first 5 rows
+dataframe.head()
+#Check the mising data. We are interested in how many missing data are present in each column
+dataframe.isnull().sum()
+#Let us get the different diabetes outcomes 
+#The outcomes will be our labels/classes in the data
+classes=dataframe['Outcome'].unique()
+classes
+#class distribution
+dataframe['Outcome'].value_counts()
+# plot a bar chat to display the class distribution
+dataframe['Outcome'].value_counts().plot.bar()
+Data Preprocessing
+# separate the labels/classes from the features/measurement
+X=dataframe.iloc[:,:-1]
+y=dataframe.iloc[:,-1]
+Split data into train and test sets
+# train test ratio 80:20
+from sklearn.model_selection import train_test_split
+X_train,X_test,y_train,y_test=train_test_split(X,y,test_size=0.2)
+Standardization of the data
+# scale data between 0 and 1
+from sklearn.preprocessing import MinMaxScaler
+min_max_scaler=MinMaxScaler()
+X_train_scaled=min_max_scaler.fit_transform(X_train)
+X_test_scaled=min_max_scaler.fit_transform(X_test)
+Training Phase
+#create random forest classifier
+rf=RandomForestClassifier()
+rf.fit(X_train_scaled,y_train)
+pred_rf=rf.predict(X_test_scaled)
+probs_rf=rf.predict_proba(X_test_scaled) [:,1]
+#create SVM classifier
+svm=SVC()
+svm.fit(X_train_scaled,y_train)
+pred_svm=svm.predict(X_test_scaled)
+probs_svm=svm.decision_function(X_test_scaled) 
+Create a function to plot ROC Curves
+def plot_roc(y_test,probs):
+    fpr,tpr,threshold=roc_curve(y_test,probs)
+    roc_auc=auc(fpr,tpr)
+    print('ROC AUC=%0.2f'%roc_auc)
+    plt.plot(fpr,tpr,label='AUC=%0.2f'%roc_auc,color='darkorange')
+    plt.legend(loc='lower right')
+    plt.plot([0,1],[0,1],'b--')
+    plt.xlim([0,1])
+    plt.ylim([0,1.05])
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.show()
+Plot ROC Curves for the classifiers
+#random forest
+plot_roc(y_test,probs_rf)
+#SVM
+plot_roc(y_test,probs_svm)
+Making the ROC curve plotting function more generic
+def plot_roc2(y_test,xtest,model):
+    
+    if hasattr(model,'decision_function'):
+        probs=model.decision_function(xtest) 
+    elif hasattr(model,'predict_proba'):
+        probs=model.predict_proba(xtest) [:,1]
+    fpr,tpr,threshold=roc_curve(y_test,probs)
+    roc_auc=auc(fpr,tpr)
+    print('ROC AUC=%0.2f'%roc_auc)
+    plt.plot(fpr,tpr,label='AUC=%0.2f'%roc_auc,color='darkorange')
+    plt.legend(loc='lower right')
+    plt.plot([0,1],[0,1],'b--')
+    plt.xlim([0,1])
+    plt.ylim([0,1.05])
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.show()
+#random forest
+plot_roc2(y_test,X_test_scaled,rf)
+#SVM
+plot_roc2(y_test,X_test_scaled,svm)
+ 

@@ -1,0 +1,35 @@
+getwd()
+setwd("D:/Nature_protocols_FMT_MS-13082023/R-Nature communications")
+library(ggplot2)
+library(vegan)
+library(grid)
+library(dbplyr)
+library(heatmap3)
+library(reshape2)
+library(corrplot)
+#load the data
+abund_table<-read.csv("microbial-taxa-Family.csv",row.names=1,check.names=FALSE)
+dim(abund_table)
+#Transpose the data to have sample names on rows
+
+meta_table<-read.csv("Metabolites-VIP.csv",row.names=1,check.names=FALSE)
+head(meta_table)
+#Filter out samples with fewer counts
+abund_table<-abund_table[rowSums(abund_table)>20,]
+dim(abund_table)
+
+#Extract the corresponding meta_table for the samples in abund_table
+meta_table<-meta_table[rownames(abund_table),]
+
+cc <- cor(x = abund_table, y = meta_table, use = "everything",
+         method = c("pearson"))
+
+cc
+
+corrplot(cc, tl.cex = 1, tl.col = "black", col = colorRampPalette(c("darkgreen", "white", "darkred"))(100))
+
+corrplot(cc, tl.cex = 1, tl.col = "black", col = colorRampPalette(c("darkgreen", "white", "red"))(100))
+
+
+
+corrplot(cc, tl.cex = 1, tl.col = "black")

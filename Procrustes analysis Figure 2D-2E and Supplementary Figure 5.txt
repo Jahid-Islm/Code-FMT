@@ -1,0 +1,146 @@
+getwd()
+setwd("D:/FMT-JRA-2019-2025/Nature_protocols_FMT_MS-13082023/R-new")
+update.packages()
+#Load required packages
+library(vegan)
+library(ggplot2)
+library(permute)
+library(lattice)
+library(labdsv)
+library(mgcv)
+library(nlme)
+library(MASS)
+
+#loading the data
+gene.pc=read.csv("donor-procrustes.csv",row.names=1)
+dim(gene.pc)
+#group=read.csv("group.csv", row.names=1)
+spe.pc=read.csv("R-7-Procrustes.csv",row.names=1)
+dim(spe.pc)
+
+gene.pc <- matrix(rnorm(206), ncol = 9)  # 10 metabolites, 100 samples
+spe.pc <- gene.pc + matrix(rnorm(204, mean = 0, sd = 0.1), ncol = 9)
+
+
+# Create matrices from the metabolite vectors
+data1 <- cbind(gene.pc)
+data2 <- cbind(spe.pc)
+
+
+procr_result <- procrustes(data1, data2,permutation=9999,scores = "sites")
+
+
+procr_result 
+summary(procr_result)
+
+plot(procr_result)
+aligned_data <- procr_result$Y
+
+# Print the aligned data
+print(aligned_data)
+
+
+print(procr_result$scale)
+print(procr_result$rotation)
+print(procr_result$translation)
+print(procr_result$M)
+
+#spe=otu file
+#gene=ABGs file
+# group=the group information of samples
+
+spe=t(spe.pc)
+gene=t(gene.pc)
+spe.dis <- dsvdis(spe,'bray/curtis')
+spe.pc <- pco(spe.dis,k=4)
+plot (spe.pc)
+
+#k=n-1(n=sample numbers)
+gene.dis <- dsvdis(gene,'bray/curtis')
+gene.pc <- pco(gene.dis,k=4)
+plot (gene.pc)
+spe.2.pc <- scores(spe.pc, c(1:2))
+procr_result <- procrustes(gene.pc, spe.pc, permutation=9999,scores = "sites")
+plot (gene.pc)
+procr_result
+
+Xcentroid <- spe.pc$points[,c(1:2)]
+Ycentroid <- spe.pc$points[,c(1:2)]
+
+Xcentroid <- spe.pc$scores[,c(1:2)]
+Ycentroid <- spe.pc$scores[,c(1:2)]
+
+
+#gene.2.pc <- scores(gene.pc, choices = 1:2)
+C <- t(Ycentroid)%*%Xcentroid
+
+
+pro <- protest(Xcentroid,Ycentroid,permutation=9999,scores = "sites")
+
+point.color <- as.integer(group$Group) + 1
+plot(pro,type = "text")
+
+pro
+summary(pro)
+?procrustes
+
+plot(pro,
+     ar.col="red", len="0.05", pch = 21,bg=point.color,cex=.6,
+     to.target = TRUE,display = c("target", "rotated"),main="",)
+
+
+points(pro,display = "target",pch = 24,bg=point.color,cex=1.5)
+
+legend("bottomright",c("D-failure","R-0-failure","R-1-failure","R-7-failure"),bty="n",
+       pch = 22,pt.bg=c("red","green3","blue","cyan"),
+       cex=1.1)
+
+
+legend("bottomleft",c("microbiome","metabolites"), pch = c(24,21),
+       bty="n",cex=1.1)
+pro
+plot(spe.pc)
+mantel(spe.dis,gene.dis,method="spear")
+
+
+
+#PRORUSTES CORRELATION For Supplementary Figure 
+setwd("C:/Jahid-2023-Folder/R-FMT/FF")
+library(ggplot2)
+library(vegan)
+#Inventory PCA
+inv <- read.csv("donor-update.csv", row.names = 1)
+inv <- na.omit(inv)
+inv.pca <- rda(inv, scale=TRUE)
+summary(inv.pca)
+dim(inv)
+#Mortality PCA
+mort <- read.csv("FD-R-0.csv", row.names = 1)
+dim(mort)
+mort <- na.omit(mort)
+mort.pca <- rda(mort, scale=TRUE)
+summary(mort.pca)
+
+#Biplots for species mortality
+par(mfrow=c(1,2))
+biplot(mort.pca, scaling =1, type="text",  xlab = "PC1 (45.8%)", ylab = "PC2 (17.4%)")
+biplot(inv.pca, scaling =1,type="text", xlab = "PC1 (30.1%)", ylab = "PC2 (21.6%)")
+
+#Inventory and Mortality Procrustes Rotation
+proc <- procrustes(inv.pca, mort.pca, scale=TRUE)
+
+par(mfrow=c(1,1))
+plot(proc)
+text(
+  proc,
+  display = "target",
+  col = "red",
+  pos = 4,
+  cex=0.6
+)
+
+
+#Significance test of Procrustes
+protest <- protest(X=inv.pca, Y=mort.pca, scores="sites", permutations=999)
+protest
+
